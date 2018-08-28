@@ -2,7 +2,7 @@
 
 This is the starter template for all City of Asheville web API projects. It contains the basic functionality of a GraphQL API, plus authentication, logging and caching. It is intended to be paired with a front-end application based on the [React Starter Template](https://github.com/cityofasheville/react-starter-template). 
 
-To build and run, clone this repository, then run:
+To build, fork, then clone this repository, then run:
 ````
 yarn
 yarn start
