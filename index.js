@@ -8,8 +8,12 @@ const cors = require('cors');
 require('dotenv').config();
 const CacheClient = require('coa-web-cache');
 const { checkLogin } = require('coa-web-login');
+
 const GRAPHQL_PORT = process.env.PORT || 4000;
 
+const app = express();
+
+// Set up the cache
 cache = new CacheClient();
 let sessionCache = null;
 const cacheMethod = process.env.cache_method || 'memory';
@@ -20,17 +24,8 @@ if (cacheMethod === 'memory') {
 } else {
   throw new Error('Redis caching not yet implemented');
 }
-const server = new ApolloServer({ 
-  typeDefs: require('./schema'),
-  resolvers: require('./resolvers'),
-  context: ({ req }) => ({
-    session: req.session,
-    req: req,
-    cache,
-  }),
-});
 
-const app = express();
+// Initialize session management
 app.use(session({
   name: process.env.sessionName,
   secret: process.env.sessionSecret, 
@@ -44,17 +39,21 @@ app.use(session({
   },
 }));
 
+// Set up CORS
 const corsOptions = {
   origin: 'http://localhost:3000',
   credentials: true,
 };
 app.use(cors(corsOptions));
 
-app.use(function (req, res, next) { // Check logged in status
+// Check whether the user is logged in
+app.use(function (req, res, next) {
   checkLogin(req, cache.get(req.session.id), cache);
   next(); //
 });
 
+// The following code just exercises the session and login
+// modules - it can be deleted in a production app.
 app.use(function (req, res, next) {
   if (!req.session) {
     req.session = {};
@@ -64,14 +63,28 @@ app.use(function (req, res, next) {
     req.session.views = {};
   }
   const pathname = parseurl(req).pathname;
-  console.log(`The email here is ${req.session.email}`);
   req.session.views[pathname] = (req.session.views[pathname] || 0) + 1;
+  console.log(`The email here is ${req.session.email}`);
   console.log(`View count is ${JSON.stringify(req.session.views)} for ${req.session.id}`);
   next();
+});
+// The code above just exercises the session and login
+// modules - it can be deleted in a production app.
+
+// Now configure and apply the GraphQL server
+const server = new ApolloServer({ 
+  typeDefs: require('./schema'),
+  resolvers: require('./resolvers'),
+  context: ({ req }) => ({
+    session: req.session,
+    req: req,
+    cache,
+  }),
 });
 
 server.applyMiddleware({ app, cors: corsOptions });
 
+// And off we go!
 app.listen({ port: GRAPHQL_PORT }, () => {
   console.log(`Server ready at http://localhost:${GRAPHQL_PORT}${server.graphqlPath}`);
 });

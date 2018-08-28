@@ -1,3 +1,7 @@
+/*
+ * The test endpoint just a placeholder since the base schema
+ * needs to have a Mutation type that can be extended.
+ */
 const baseSchema = `
   # the schema allows the following query:
   type Query {
