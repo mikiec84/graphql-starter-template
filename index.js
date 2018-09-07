@@ -1,16 +1,16 @@
 const { ApolloServer, gql } = require('apollo-server-express');
 const express = require('express');
 const session = require('express-session');
-const MemoryStore = require('memorystore')(session)
-const parseurl = require('parseurl');
 const cors = require('cors');
 
 require('dotenv').config();
 const apiConfig = require('./api/config');
 const getDbConnection = require('./common/db');
 
+const MemoryStore = require('memorystore')(session)
 const CacheClient = require('coa-web-cache');
 const { checkLogin } = require('coa-web-login');
+const getUserInfo = require('./common/get_user_info');
 
 const GRAPHQL_PORT = process.env.PORT || 4000;
 
@@ -49,99 +49,24 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Check whether the user is logged in
-app.use(function (req, res, next) {
-  checkLogin(req, cache.get(req.session.id), cache)
-  .then(isLoggedIn => {
-    if (isLoggedIn && apiConfig.enableEmployeeLogins) {
-      if (req.session.loginProvider !== 'Google') next();
-      let user = {};
-      const cacheData = cache.get(req.session.id);
-      if (cacheData !== undefined && cacheData.user !== undefined) {
-        user = cacheData.user;
-      }
-      if (user.id === undefined) {
-        const conn = getDbConnection('mds');
-        let query = `select emp_id from amd.ad_info where email_city = '${req.session.email}'`;
-        conn.query(query)
-        .then(res => {
-          query = 'select empid, active, position, employee, emp_email, supid, supervisor, '
-          + 'deptid, department, divid, division, hire_date, '
-          + 'sup_email from internal.employees where empid = $1';
-          conn.query(query, [res.rows[0].emp_id])
-          .then(data => {
-            if (data.rows && data.rows.length > 0) {
-              const e = data.rows[0];
-              user = {
-                id: e.empid,
-                active: e.active,
-                name: e.employee,
-                email: e.emp_email,
-                position: e.position,
-                department_id: e.deptid,
-                department: e.department,
-                division_id: e.divid,
-                division: e.division,
-                supervisor_id: e.supid,
-                supervisor_name: e.supervisor,
-                supervisor_email: e.sup_email,
-                hire_date: e.hire_date,
-              };
-              cache.store(req.session.id, Object.assign({}, cacheData, { user }));
-            }
-            next();
-          })
-          .catch(error => {
-            console.log(`Error: ${error}`);
-            next();
-          });
-        });
-      } else if (isLoggedIn) {
-        let user = {
-          id: null,
-          name: null,
-          email: req.session.email,
-          position: null,
-          department: null,
-          division: null,
-          supervisor_id: null,
-          supervisor: null,
-          supervisor_email: null,
-        };
-        cache.store(req.session.id, Object.assign({}, cacheData, { user }));
-        next();
-      } else next();
-    } else {
-      next();
-    }
-  });
-});
-
-// The following code just exercises the session and login
-// modules - it can be deleted in a production app.
-app.use(function (req, res, next) {
-  if (!req.session) {
-    req.session = {};
-  }
-
-  if (!req.session.views) {
-    req.session.views = {};
-  }
-  const pathname = parseurl(req).pathname;
-  req.session.views[pathname] = (req.session.views[pathname] || 0) + 1;
-  console.log(`The email here is ${req.session.email}`);
-  const cdata = cache.get(req.session.id);
-  console.log(`View count is ${JSON.stringify(req.session.views)} for ${req.session.id}`);
-  next();
-});
-// The code above just exercises the session and login
-// modules - it can be deleted in a production app.
-
-// Now configure and apply the GraphQL server
 
 if (apiConfig.enableEmployeeLogins) {
   getDbConnection('mds'); // Initialize the connection.
 }
+
+// Check whether the user is logged in
+app.use(function (req, res, next) {
+  checkLogin(req, cache.get(req.session.id), cache)
+  .then(isLoggedIn => {
+    return getUserInfo(isLoggedIn, apiConfig.enableEmployeeLogins, req, cache);
+  })
+  .then(() => { next(); });
+});
+
+// Add in any middleware defined by the API
+require('./api').middlewares.forEach(m => { app.use(m); });
+
+// Now configure and apply the GraphQL server
 
 const server = new ApolloServer({ 
   typeDefs: require('./schema'),
