@@ -68,6 +68,7 @@ const getUserInfo = (isLoggedIn, enableEmployeeLogins, req, cache) => {
         });
       });
     }
+    return Promise.resolve(user);
   }
   return getNonCityUser(isLoggedIn, req, cache);
 }
