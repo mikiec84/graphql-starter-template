@@ -6,6 +6,9 @@ const parseurl = require('parseurl');
 const cors = require('cors');
 
 require('dotenv').config();
+const apiConfig = require('./api/config');
+const getDbConnection = require('./common/db');
+
 const CacheClient = require('coa-web-cache');
 const { checkLogin } = require('coa-web-login');
 
@@ -48,8 +51,57 @@ app.use(cors(corsOptions));
 
 // Check whether the user is logged in
 app.use(function (req, res, next) {
-  checkLogin(req, cache.get(req.session.id), cache);
-  next(); //
+  checkLogin(req, cache.get(req.session.id), cache)
+  .then(isLoggedIn => {
+    if (isLoggedIn && apiConfig.enableEmployeeLogins) {
+      console.log('Logged in - now see if we set up the user')
+      let user = {};
+      const cacheData = cache.get(req.session.id);
+      if (cacheData !== undefined && cacheData.user !== undefined) {
+        user = cacheData.user;
+      }
+      if (user.id === undefined) {
+        console.log('Set up the user');
+        const conn = getDbConnection('mds');
+        let query = `select emp_id from amd.ad_info where email_city = '${req.session.email}'`;
+        conn.query(query)
+        .then(res => {
+          query = 'select empid, active, position, employee, emp_email, supid, supervisor, '
+          + 'deptid, department, divid, division, hire_date, '
+          + 'sup_email from internal.employees where empid = $1';
+          conn.query(query, [res.rows[0].emp_id])
+          .then(data => {
+            if (data.rows && data.rows.length > 0) {
+              const e = data.rows[0];
+              user = {
+                id: e.empid,
+                active: e.active,
+                name: e.employee,
+                email: e.emp_email,
+                position: e.position,
+                department_id: e.deptid,
+                department: e.department,
+                division_id: e.divid,
+                division: e.division,
+                supervisor_id: e.supid,
+                supervisor_name: e.supervisor,
+                supervisor_email: e.sup_email,
+                hire_date: e.hire_date,
+              };
+              cache.store(req.session.id, Object.assign({}, cacheData, { user }));
+            }
+            next();
+          })
+          .catch(error => {
+            console.log(`Error: ${error}`);
+            next();
+          });
+        });
+      } else next();
+    } else {
+      next();
+    }
+  });
 });
 
 // The following code just exercises the session and login
@@ -65,6 +117,7 @@ app.use(function (req, res, next) {
   const pathname = parseurl(req).pathname;
   req.session.views[pathname] = (req.session.views[pathname] || 0) + 1;
   console.log(`The email here is ${req.session.email}`);
+  const cdata = cache.get(req.session.id);
   console.log(`View count is ${JSON.stringify(req.session.views)} for ${req.session.id}`);
   next();
 });
@@ -72,14 +125,21 @@ app.use(function (req, res, next) {
 // modules - it can be deleted in a production app.
 
 // Now configure and apply the GraphQL server
+
+if (apiConfig.enableEmployeeLogins) {
+  getDbConnection('mds'); // Initialize the connection.
+}
+
 const server = new ApolloServer({ 
   typeDefs: require('./schema'),
   resolvers: require('./resolvers'),
-  context: ({ req }) => ({
-    session: req.session,
-    req: req,
-    cache,
-  }),
+  context: ({ req }) => {
+    return {
+      session: req.session,
+      req: req,
+      cache,
+    };
+  },
 });
 
 server.applyMiddleware({ app, cors: corsOptions });

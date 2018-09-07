@@ -4,8 +4,20 @@
  */
 const baseSchema = `
   # the schema allows the following query:
+
+  type User {
+    name: String
+    email: String
+    position: String
+    department: String
+    division: String
+    supervisor: String
+    supervisor_email: String
+  }
+
   type Query {
     version: String
+    user: User
   }
 
   type Dummy {
