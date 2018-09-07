@@ -54,14 +54,13 @@ app.use(function (req, res, next) {
   checkLogin(req, cache.get(req.session.id), cache)
   .then(isLoggedIn => {
     if (isLoggedIn && apiConfig.enableEmployeeLogins) {
-      console.log('Logged in - now see if we set up the user')
+      if (req.session.loginProvider !== 'Google') next();
       let user = {};
       const cacheData = cache.get(req.session.id);
       if (cacheData !== undefined && cacheData.user !== undefined) {
         user = cacheData.user;
       }
       if (user.id === undefined) {
-        console.log('Set up the user');
         const conn = getDbConnection('mds');
         let query = `select emp_id from amd.ad_info where email_city = '${req.session.email}'`;
         conn.query(query)
@@ -97,6 +96,20 @@ app.use(function (req, res, next) {
             next();
           });
         });
+      } else if (isLoggedIn) {
+        let user = {
+          id: null,
+          name: null,
+          email: req.session.email,
+          position: null,
+          department: null,
+          division: null,
+          supervisor_id: null,
+          supervisor: null,
+          supervisor_email: null,
+        };
+        cache.store(req.session.id, Object.assign({}, cacheData, { user }));
+        next();
       } else next();
     } else {
       next();

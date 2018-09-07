@@ -6,11 +6,13 @@ const baseSchema = `
   # the schema allows the following query:
 
   type User {
+    id: Int
     name: String
     email: String
     position: String
     department: String
     division: String
+    supervisor_id: Int
     supervisor: String
     supervisor_email: String
   }
