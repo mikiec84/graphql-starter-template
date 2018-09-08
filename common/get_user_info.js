@@ -1,20 +1,28 @@
 const getDbConnection = require('./db');
+const getEmployeeInfo = require('./get_employee_info');
+
+const baseUser = {
+  id: null,
+  active: null,
+  name: null,
+  email: null,
+  position: null,
+  department_id: null,
+  department: null,
+  division_id: null,
+  division: null,
+  supervisor_id: null,
+  supervisor_name: null,
+  supervisor_email: null,
+  hire_date: null,
+}
 
 const getNonCityUser = (isLoggedIn, req, cache) => {
-  let user = {
-    id: null,
-    name: null,
-    email: null,
-    position: null,
-    department: null,
-    division: null,
-    supervisor_id: null,
-    supervisor: null,
-    supervisor_email: null,
-  };
+  let user = baseUser;
   if (isLoggedIn) {
     const cacheData = cache.get(req.session.id);
-    user.email = req.session.email;
+    user = Object.assign({}, baseUser, { email: req.session.email });
+    // user.email = req.session.email;
     cache.store(req.session.id, Object.assign({}, cacheData, { user }));
   }
   return Promise.resolve(user);
@@ -35,36 +43,10 @@ const getUserInfo = (isLoggedIn, enableEmployeeLogins, req, cache) => {
       .then(res => {
         // We could check that it's ashevillenc.gov first, actually.
         if (res.rows.length === 0) return getNonCityUser(isLoggedIn, req, cache);
-
-        query = 'select empid, active, position, employee, emp_email, supid, supervisor, '
-        + 'deptid, department, divid, division, hire_date, '
-        + 'sup_email from internal.employees where empid = $1';
-        return conn.query(query, [res.rows[0].emp_id])
-        .then(data => {
-          if (data.rows && data.rows.length > 0) {
-            const e = data.rows[0];
-            user = {
-              id: e.empid,
-              active: e.active,
-              name: e.employee,
-              email: e.emp_email,
-              position: e.position,
-              department_id: e.deptid,
-              department: e.department,
-              division_id: e.divid,
-              division: e.division,
-              supervisor_id: e.supid,
-              supervisor_name: e.supervisor,
-              supervisor_email: e.sup_email,
-              hire_date: e.hire_date,
-            };
-            cache.store(req.session.id, Object.assign({}, cacheData, { user }));
-          }
-          return Promise.resolve(user);
-        })
-        .catch(error => {
-          console.log(`Error: ${error}`);
-          return Promise.resolve(user);
+        return getEmployeeInfo(res.rows[0].emp_id, req.session.email, cache, baseUser)
+        .then(u => {
+          cache.store(req.session.id, Object.assign({}, cacheData, { user: u }));
+          return Promise.resolve(u);
         });
       });
     }
