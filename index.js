@@ -2,6 +2,7 @@ const { ApolloServer, gql } = require('apollo-server-express');
 const express = require('express');
 const session = require('express-session');
 const cors = require('cors');
+const logger = require('./commont/logger');
 
 require('dotenv').config();
 const apiConfig = require('./api/config');
