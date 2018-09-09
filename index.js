@@ -8,7 +8,7 @@ const apiConfig = require('./api/config');
 const getDbConnection = require('./common/db');
 
 const MemoryStore = require('memorystore')(session)
-const CacheClient = require('coa-web-cache');
+const cache = require('coa-web-cache');
 const { checkLogin } = require('coa-web-login');
 const getUserInfo = require('./common/get_user_info');
 
@@ -16,8 +16,6 @@ const GRAPHQL_PORT = process.env.PORT || 4000;
 
 const app = express();
 
-// Set up the cache
-cache = new CacheClient();
 let sessionCache = null;
 const cacheMethod = process.env.cache_method || 'memory';
 if (cacheMethod === 'memory') {
