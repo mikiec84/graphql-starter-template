@@ -19,38 +19,39 @@ const getEmployeeInfo = (employeeId, employeeEmail, cache, baseUser) => {
   return employeeIdLookup
   .then(empId => {
     const cacheKey = `employee-${empId}`;
-    user = cache.get(cacheKey);
-    if (user) return Promise.resolve(user);
-
-    const query = 'select empid, active, position, employee, emp_email, supid, supervisor, '
-    + 'deptid, department, divid, division, hire_date, '
-    + 'sup_email from internal.employees where empid = $1';
-    return conn.query(query, [empId])
-    .then(data => {
-      if (data.rows && data.rows.length > 0) {
-        const e = data.rows[0];
-        user = Object.assign({}, baseUser, {
-          id: e.empid,
-          active: e.active,
-          name: e.employee,
-          email: e.emp_email,
-          position: e.position,
-          department_id: e.deptid,
-          department: e.department,
-          division_id: e.divid,
-          division: e.division,
-          supervisor_id: e.supid,
-          supervisor_name: e.supervisor,
-          supervisor_email: e.sup_email,
-          hire_date: e.hire_date,
-        });
-        cache.store(cacheKey, user);
-      }
-      return Promise.resolve(user);
-    })
-    .catch(error => {
-      console.log(`Error: ${error}`);
-      return Promise.resolve(user);
+    return cache.get(cacheKey)
+    .then(cachedUser => {
+      if (cachedUser) return Promise.resolve(cachedUser);
+      const query = 'select empid, active, position, employee, emp_email, supid, supervisor, '
+      + 'deptid, department, divid, division, hire_date, '
+      + 'sup_email from internal.employees where empid = $1';
+      return conn.query(query, [empId])
+      .then(data => {
+        if (data.rows && data.rows.length > 0) {
+          const e = data.rows[0];
+          user = Object.assign({}, baseUser, {
+            id: e.empid,
+            active: e.active,
+            name: e.employee,
+            email: e.emp_email,
+            position: e.position,
+            department_id: e.deptid,
+            department: e.department,
+            division_id: e.divid,
+            division: e.division,
+            supervisor_id: e.supid,
+            supervisor_name: e.supervisor,
+            supervisor_email: e.sup_email,
+            hire_date: e.hire_date,
+          });
+          cache.store(cacheKey, user); // Should wait to verify, but skip it for now.
+        }
+        return Promise.resolve(user);
+      })
+      .catch(error => {
+        console.log(`Error: ${error}`);
+        return Promise.resolve(user);
+      });  
     });
   });
 }

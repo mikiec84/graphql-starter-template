@@ -888,9 +888,9 @@ coa-node-logging@^2.0.3:
   dependencies:
     bunyan "^1.8.5"
 
-coa-web-cache@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/coa-web-cache/-/coa-web-cache-1.0.0.tgz#12f981df404e57f3739fb46a3852bdc8f9719f9d"
+coa-web-cache@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/coa-web-cache/-/coa-web-cache-1.1.0.tgz#86a2ad824d22361f434325cb6fa60d91775a0e37"
   dependencies:
     lru-cache "^4.1.3"
 
