@@ -1,4 +1,5 @@
 const parseurl = require('parseurl');
+const cache = require('coa-web-cache');
 
 const middlewares = [
   // The following code just exercises the session and login
