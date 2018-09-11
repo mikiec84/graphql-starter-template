@@ -1,5 +1,7 @@
 const parseurl = require('parseurl');
+const getDbConnection = require('../common/db');
 const cache = require('coa-web-cache');
+const logger = require('../common/logger');
 
 const middlewares = [
   // The following code just exercises the session and login
