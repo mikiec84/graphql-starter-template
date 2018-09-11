@@ -56,12 +56,15 @@ if (apiConfig.enableEmployeeLogins) {
 // Check whether the user is logged in
 app.use(function (req, res, next) {
   cache.get(req.session.id)
-  .then(cacheData => {
-    checkLogin(req, cacheData, cache)
+  .then(sessionId => {
+    checkLogin(req, sessionId, cache)
     .then(isLoggedIn => {
       return getUserInfo(isLoggedIn, apiConfig.enableEmployeeLogins, req, cache);
     })
-    .then(() => { next(); });  
+    .then(uinfo => {
+      req.session.employee_id = uinfo.id;
+      next();
+    });  
   }) 
 });
 

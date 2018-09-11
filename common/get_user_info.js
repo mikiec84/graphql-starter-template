@@ -1,21 +1,6 @@
 const getDbConnection = require('./db');
 const getEmployeeInfo = require('./get_employee_info');
-
-const baseUser = {
-  id: null,
-  active: null,
-  name: null,
-  email: null,
-  position: null,
-  department_id: null,
-  department: null,
-  division_id: null,
-  division: null,
-  supervisor_id: null,
-  supervisor_name: null,
-  supervisor_email: null,
-  hire_date: null,
-}
+const baseUser = require('./base_user');
 
 const getNonCityUser = (isLoggedIn, req, cache) => {
   let user = baseUser;
@@ -47,10 +32,10 @@ const getUserInfo = (isLoggedIn, enableEmployeeLogins, req, cache) => {
         .then(res => {
           // We could check that it's ashevillenc.gov first, actually.
           if (res.rows.length === 0) return getNonCityUser(isLoggedIn, req, cache);
-          return getEmployeeInfo(res.rows[0].emp_id, req.session.email, cache, baseUser)
+          return getEmployeeInfo([res.rows[0].emp_id], cache)
           .then(u => {
-            cache.store(req.session.id, Object.assign({}, cacheData, { user: u })); // Should verify success, but skip for now.
-            return Promise.resolve(u);
+            cache.store(req.session.id, Object.assign({}, cacheData, { user: u[0] })); // Should verify success, but skip for now.
+            return Promise.resolve(u[0]);
           });
         });
       }
