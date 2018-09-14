@@ -2,24 +2,19 @@ const sampleData = [
   {
     title: 'Harry Potter and the Chamber of Secrets',
     author: 'J.K. Rowling',
-    secret: 'Hagrid'
+    secret: 'Hagrid',
   },
   {
     title: 'Jurassic Park',
     author: 'Michael Crichton',
-    secret: 'raptor'
+    secret: 'raptor',
   },
 ];
 
 const resolvers = {
   Query: {
-    books: (parent, args, context) => sampleData.map(itm => {
-      return {
-        title: itm.title,
-        author: itm.author,
-        secret: itm.secret,
-      }
-    }),
+    books:
+      (parent, args, context) => sampleData, // eslint-disable-line no-unused-vars
   },
 };
 module.exports = resolvers;
