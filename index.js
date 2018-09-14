@@ -56,15 +56,14 @@ if (apiConfig.enableEmployeeLogins) {
 // Check whether the user is logged in
 app.use((req, res, next) => {
   cache.get(req.session.id)
-  .then((sessionId) => {
-    checkLogin(req, sessionId, cache)
-    .then((isLoggedIn) => getUserInfo(isLoggedIn, apiConfig.enableEmployeeLogins, req, cache);
+    .then((sessionId) => {
+      checkLogin(req, sessionId, cache)
+        .then(isLoggedIn => getUserInfo(isLoggedIn, apiConfig.enableEmployeeLogins, req, cache))
+        .then((uinfo) => {
+          req.session.employee_id = uinfo.id;
+          next();
+        });  
     })
-    .then(uinfo => {
-      req.session.employee_id = uinfo.id;
-      next();
-    });  
-  }) 
 });
 
 // Add in any middleware defined by the API
