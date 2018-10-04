@@ -11,6 +11,7 @@ const cors = require('cors');
 const cache = require('coa-web-cache');
 const { checkLogin } = require('coa-web-login');
 const MemoryStore = require('memorystore')(session);
+const PgSession = require('connect-pg-simple')(session);
 
 require('dotenv').config();
 const apiConfig = require('./api/config');
@@ -20,16 +21,28 @@ const getUserInfo = require('./common/get_user_info');
 
 const GRAPHQL_PORT = process.env.PORT || 4000;
 
+
+if (apiConfig.enableEmployeeLogins) {
+  getDbConnection('mds'); // Initialize the connection.
+}
+
 const app = express();
 
 let sessionCache = null;
+const prunePeriod = 86400000; // prune expired entries every 24h
 const cacheMethod = process.env.cache_method || 'memory';
 if (cacheMethod === 'memory') {
   sessionCache = new MemoryStore({
-    checkPeriod: 86400000, // prune expired entries every 24h
+    checkPeriod: prunePeriod,
+  });
+} else if (cacheMethod === 'pg') {
+  sessionCache = new PgSession({
+    pool: getDbConnection('mds'),
+    schemaName: 'coaaux',
+    ttl: prunePeriod,
   });
 } else {
-  throw new Error('Redis caching not yet implemented');
+  throw new Error(`Unknown caching method ${cacheMethod}`);
 }
 
 // Initialize session management
@@ -52,11 +65,6 @@ const corsOptions = {
   credentials: true,
 };
 app.use(cors(corsOptions));
-
-
-if (apiConfig.enableEmployeeLogins) {
-  getDbConnection('mds'); // Initialize the connection.
-}
 
 // Check whether the user is logged in
 app.use((req, res, next) => {
