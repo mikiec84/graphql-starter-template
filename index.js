@@ -71,7 +71,6 @@ app.use(cors(corsOptions));
 app.use((req, res, next) => {
   cache.get(req.session.id)
     .then((sessionId) => {
-      console.log('GQL ' + req.session.id);
       checkLogin(req, sessionId, cache)
         .then(isLoggedIn => getUserInfo(isLoggedIn, apiConfig, req, cache))
         .then((uinfo) => {
