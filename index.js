@@ -36,6 +36,7 @@ if (cacheMethod === 'memory') {
     checkPeriod: prunePeriod,
   });
 } else if (cacheMethod === 'pg') {
+  console.log('Need to allow setting db/schema and also non-session cache');
   sessionCache = new PgSession({
     pool: getDbConnection('mds'),
     schemaName: 'coaaux',
@@ -70,6 +71,7 @@ app.use(cors(corsOptions));
 app.use((req, res, next) => {
   cache.get(req.session.id)
     .then((sessionId) => {
+      console.log('GQL ' + req.session.id);
       checkLogin(req, sessionId, cache)
         .then(isLoggedIn => getUserInfo(isLoggedIn, apiConfig, req, cache))
         .then((uinfo) => {
