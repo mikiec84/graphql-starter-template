@@ -40,7 +40,7 @@ const getUserInfo = (isLoggedIn, config, req, cache) => {
         }
         if (user.id === undefined) {
           const conn = getDbConnection('mds');
-          const query = 'select emp_id from amd.ad_info where email_city = $1';
+          const query = 'select emp_id from internal.ad_info where email_city = $1';
           return conn.query(query, [req.session.email])
             .then((res) => {
               // We could check that it's ashevillenc.gov first, actually.

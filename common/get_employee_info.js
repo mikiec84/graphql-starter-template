@@ -13,7 +13,7 @@ const getEmployeeInfo = (employeeIds, cache, email = null) => {
   let employeeIdsLookup = Promise.resolve(employeeIds);
   if (employeeIds === null || employeeIds.length === 0) {
     // We could check that it's ashevillenc.gov first, actually.
-    const query = 'select emp_id from amd.ad_info where email_city = $1';
+    const query = 'select emp_id from internal.ad_info where email_city = $1';
     employeeIdsLookup = conn.query(query, [email])
       .then((res) => {
         if (res && res.rows && res.rows.length > 0) {
@@ -37,24 +37,25 @@ const getEmployeeInfo = (employeeIds, cache, email = null) => {
               needLookup.push(empIds[j]);
             }
           });
-          const query = 'select empid, active, position, employee, emp_email, supid, supervisor, '
-          + 'deptid, department, divid, division, hire_date, '
-          + 'sup_email from internal.employees where empid = ANY($1)';
+          const query = 'select emp_id, active, position, ft_status, employee, emp_email, sup_id, supervisor, '
+          + 'dept_id, department, div_id, division, hire_date, '
+          + 'sup_email from internal.pr_employee_info where emp_id = ANY($1)';
           return conn.query(query, [needLookup])
             .then((data) => {
               if (data.rows && data.rows.length > 0) {
                 data.rows.forEach((e) => {
                   user = Object.assign({}, baseUser, {
-                    id: e.empid,
+                    id: e.emp_id,
                     active: e.active,
                     name: e.employee,
                     email: e.emp_email,
                     position: e.position,
-                    department_id: e.deptid,
+                    ft_status: e.ft_status,
+                    department_id: e.dept_id,
                     department: e.department,
-                    division_id: e.divid,
+                    division_id: e.div_id,
                     division: e.division,
-                    supervisor_id: e.supid,
+                    supervisor_id: e.sup_id,
                     supervisor_name: e.supervisor,
                     supervisor_email: e.sup_email,
                     hire_date: e.hire_date,

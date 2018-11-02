@@ -10,6 +10,7 @@ const baseUser = {
   name: null,
   email: null,
   position: null,
+  ft_status: null,
   department_id: null,
   department: null,
   division_id: null,

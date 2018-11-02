@@ -39,7 +39,7 @@ if (cacheMethod === 'memory') {
   console.log('Need to allow setting db/schema and also non-session cache');
   sessionCache = new PgSession({
     pool: getDbConnection('mds'),
-    schemaName: 'coaaux',
+    schemaName: 'aux',
     ttl: prunePeriod,
   });
 } else {
