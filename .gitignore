@@ -2,6 +2,7 @@ SECRETS.txt
 
 # dependencies
 /node_modules
+/coa-web-login
 
 # misc
 .DS_Store
