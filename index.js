@@ -9,7 +9,7 @@ const express = require('express');
 const session = require('express-session');
 const cors = require('cors');
 const cache = require('coa-web-cache');
-const { checkLogin } = require('coa-web-login');
+const { checkLogin, initializeContext, getUserInfo } = require('coa-web-login');
 const MemoryStore = require('memorystore')(session);
 const PgSession = require('connect-pg-simple')(session);
 
@@ -17,10 +17,7 @@ require('dotenv').config();
 const apiConfig = require('./api/config');
 const getDbConnection = require('./common/db');
 
-const getUserInfo = require('./common/get_user_info');
-
 const GRAPHQL_PORT = process.env.PORT || 4000;
-
 
 if (apiConfig.enableEmployeeLogins) {
   getDbConnection('mds'); // Initialize the connection.
@@ -30,20 +27,19 @@ const app = express();
 
 let sessionCache = null;
 const prunePeriod = 86400000; // prune expired entries every 24h
-const cacheMethod = process.env.cache_method || 'memory';
-if (cacheMethod === 'memory') {
+const sessionCacheMethod = process.env.session_cache_method || 'memory';
+if (sessionCacheMethod === 'memory') {
   sessionCache = new MemoryStore({
     checkPeriod: prunePeriod,
   });
-} else if (cacheMethod === 'pg') {
-  console.log('Need to allow setting db/schema and also non-session cache');
+} else if (sessionCacheMethod === 'pg') {
   sessionCache = new PgSession({
     pool: getDbConnection('mds'),
     schemaName: 'aux',
     ttl: prunePeriod,
   });
 } else {
-  throw new Error(`Unknown caching method ${cacheMethod}`);
+  throw new Error(`Unknown caching method ${sessionCacheMethod}`);
 }
 
 // Initialize session management
@@ -69,20 +65,28 @@ app.use(cors(corsOptions));
 
 // Check whether the user is logged in
 app.use((req, res, next) => {
-  cache.get(req.session.id)
-    .then((sessionId) => {
-      checkLogin(req, sessionId, cache)
-        .then(isLoggedIn => getUserInfo(isLoggedIn, apiConfig, req, cache))
-        .then((uinfo) => {
-          req.session.employee_id = uinfo.id;
-          return next();
-        })
-        .catch((err) => {
-          const error = new Error(err.toString().substring(6));
-          error.httpStatusCode = 403;
-          error.stack = null;
-          return next(error);
-        });
+  const sessionId = req.session.id;
+  cache.get(sessionId)
+    .then((cData) => {
+      let ensureInCache = Promise.resolve(null);
+      const cachedContext = cData || initializeContext();
+      if (!cData) {
+        ensureInCache = cache.store(sessionId, cachedContext);
+      }
+      ensureInCache.then(() => {
+        checkLogin(sessionId, cachedContext, cache)
+          .then(() => getUserInfo(sessionId, cachedContext, apiConfig, cache, getDbConnection('mds')))
+          .then((uinfo) => {
+            req.session.employee_id = uinfo.id;
+            return next();
+          })
+          .catch((err) => {
+            const error = new Error(err.toString().substring(6));
+            error.httpStatusCode = 403;
+            error.stack = null;
+            return next(error);
+          });
+      });
     });
 });
 
@@ -98,8 +102,8 @@ const server = new ApolloServer({
   typeDefs,
   resolvers,
   context: ({ req }) => ({
+    sessionId: req.session.id,
     session: req.session,
-    req,
     cache,
   }),
 });
