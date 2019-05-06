@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon ./index.js",
-    "test": "jest"
+    "test": "jest",
+    "snyk-protect": "snyk protect",
+    "prepare": "npm run snyk-protect"
   },
   "keywords": [],
   "author": "",
@@ -27,7 +29,8 @@
     "lodash": "^4.17.11",
     "memorystore": "^1.6.0",
     "mssql": "^4.3.0",
-    "pg": "^7.8.0"
+    "pg": "^7.8.0",
+    "snyk": "^1.161.1"
   },
   "peerDependencies": {},
   "devDependencies": {
@@ -45,5 +48,6 @@
     "rules": {
       "linebreak-style": 0
     }
-  }
+  },
+  "snyk": true
 }
